@@ -48,7 +48,8 @@ fn handle_dice_roll(roll_string: String) -> String {
         let num_dice_str = caps.get(1).map_or("1", |m| m.as_str());
         let num_dice = match num_dice_str.parse::<i32>() {
             Ok(n) if n > 0 => n,
-            _ => return "Invalid number of dice. You can't roll 0 or negative dice.".to_string(),
+            _ if num_dice_str.is_empty() => 1,
+            _ => return "Invalid number of dice. You can't roll negative dice.".to_string(),
         };
 
         let faces_str = caps.get(2).map_or("0", |m| m.as_str());
