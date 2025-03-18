@@ -23,6 +23,7 @@ async fn main() {
         .await
         .expect("Failed to setup webhook");
 
+    log::info!("Webhook setup successful, starting bot...");
     Command::repl_with_listener(bot, handle_commands, listener).await;
 }
 
@@ -41,28 +42,34 @@ enum Command {
 }
 
 fn handle_dice_roll(roll_string: String) -> String {
-    let pattern = Regex::new(r"^(\d*)d(\d+)(?:\+(\d+))?$").unwrap();
+    let pattern = Regex::new(r"^(\d*)d(\d+)(?:[+-](\d+))?$").unwrap();
 
     if let Some(caps) = pattern.captures(&roll_string) {
         let num_dice_str = caps.get(1).map_or("1", |m| m.as_str());
-        let num_dice = num_dice_str.parse::<i32>().unwrap_or(1);
+        let num_dice = match num_dice_str.parse::<i32>() {
+            Ok(n) if n > 0 => n,
+            _ => return "Invalid number of dice. You can't roll 0 or negative dice.".to_string(),
+        };
 
         let faces_str = caps.get(2).map_or("0", |m| m.as_str());
-        let faces = faces_str.parse::<i32>().unwrap_or(0);
+        let faces = match faces_str.parse::<i32>() {
+            Ok(n) if n > 0 => n,
+            _ => {
+                return "Invalid number of sides on the dice. The dice gotta have at least 1 side."
+                    .to_string()
+            }
+        };
 
-        if faces <= 0 {
-            return "Invalid dice roll format. The dice gotta have at least 1 face. :(".to_string();
-        }
-
-        let modifier_str = caps.get(3).map_or("0", |m| m.as_str());
-        let modifier = modifier_str.parse::<i32>().unwrap_or(0);
+        let modifier = if roll_string.contains('-') {
+            caps.get(3)
+                .map_or(0, |m| -m.as_str().parse::<i32>().unwrap_or(0))
+        } else {
+            caps.get(3)
+                .map_or(0, |m| m.as_str().parse::<i32>().unwrap_or(0))
+        };
 
         let mut rng = rand::rng();
-        let mut rolls = Vec::new();
-
-        for _ in 0..num_dice {
-            rolls.push(rng.random_range(1..=faces));
-        }
+        let rolls: Vec<i32> = (0..num_dice).map(|_| rng.random_range(1..=faces)).collect();
 
         let dice_total: i32 = rolls.iter().sum();
         let total = dice_total + modifier;
@@ -73,27 +80,37 @@ fn handle_dice_roll(roll_string: String) -> String {
             .collect::<Vec<String>>()
             .join(" + ");
 
-        if modifier > 0 {
+        if modifier != 0 {
             format!(
-                "Rolling {}d{} + {}: [{}] + {} = {}",
-                num_dice, faces, modifier, rolls_str, modifier, total
+                "🎲 Rolling {}d{}{}{}: [{}] {} {} = {}",
+                num_dice,
+                faces,
+                if modifier < 0 { "-" } else { "+" },
+                modifier.abs(),
+                rolls_str,
+                if modifier < 0 { "-" } else { "+" },
+                modifier.abs(),
+                total
             )
         } else {
             format!(
-                "Rolling {}d{}: [{}] = {}",
+                "🎲 Rolling {}d{}: [{}] = {}",
                 num_dice, faces, rolls_str, total
             )
         }
     } else {
-        "Invalid dice roll format. Example: /r 2d20+5".to_string()
+        "Invalid dice roll format. Use format like '2d20+5' or '2d20-5'".to_string()
     }
 }
 
 async fn handle_commands(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
     match cmd {
         Command::Start => {
-            bot.send_message(msg.chat.id, "Ayyyy, I'm rollin here! >:D")
-                .await?
+            bot.send_message(
+                msg.chat.id,
+                "🎲 Ayyyy, I'm rollin here! >:D\nUse /help to see available commands.".to_string(),
+            )
+            .await?
         }
         Command::Help => {
             bot.send_message(msg.chat.id, Command::descriptions().to_string())
