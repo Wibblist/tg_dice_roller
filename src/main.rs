@@ -1,7 +1,10 @@
 use rand::Rng;
 use regex::Regex;
 
-use teloxide::{prelude::*, update_listeners::webhooks, utils::command::BotCommands};
+use teloxide::{
+    prelude::*, sugar::request::RequestReplyExt, types::ParseMode, update_listeners::webhooks,
+    utils::command::BotCommands,
+};
 
 #[tokio::main]
 async fn main() {
@@ -41,7 +44,7 @@ enum Command {
     R(String),
 }
 
-fn handle_dice_roll(roll_string: String) -> String {
+fn handle_dice_roll(roll_string: String, username: String) -> String {
     let pattern = Regex::new(r"^(\d*)d(\d+)(?:[+-](\d+))?$").unwrap();
 
     if let Some(caps) = pattern.captures(&roll_string) {
@@ -49,15 +52,22 @@ fn handle_dice_roll(roll_string: String) -> String {
         let num_dice = match num_dice_str.parse::<i32>() {
             Ok(n) if n > 0 => n,
             _ if num_dice_str.is_empty() => 1,
-            _ => return "Invalid number of dice. You can't roll negative dice.".to_string(),
+            _ => {
+                return format!(
+                    "{} rolled an invalid number of dice. You can't roll negative dice.",
+                    username
+                )
+            }
         };
 
         let faces_str = caps.get(2).map_or("0", |m| m.as_str());
         let faces = match faces_str.parse::<i32>() {
             Ok(n) if n > 0 => n,
             _ => {
-                return "Invalid number of sides on the dice. The dice gotta have at least 1 side."
-                    .to_string()
+                return format!(
+                    "{} rolled an invalid number of sides on the dice. The dice gotta have at least 1 side.",
+                    username
+                )
             }
         };
 
@@ -83,7 +93,8 @@ fn handle_dice_roll(roll_string: String) -> String {
 
         if modifier != 0 {
             format!(
-                "🎲 Rolling {}d{}{}{}: [{}] {} {} = {}",
+                "{} rolled {}d{}{}{}: [{}] {} {} = {}",
+                username,
                 num_dice,
                 faces,
                 if modifier < 0 { "-" } else { "+" },
@@ -95,8 +106,8 @@ fn handle_dice_roll(roll_string: String) -> String {
             )
         } else {
             format!(
-                "🎲 Rolling {}d{}: [{}] = {}",
-                num_dice, faces, rolls_str, total
+                "{} rolled {}d{}: [{}] = {}",
+                username, num_dice, faces, rolls_str, total
             )
         }
     } else {
@@ -118,7 +129,12 @@ async fn handle_commands(bot: Bot, msg: Message, cmd: Command) -> ResponseResult
                 .await?
         }
         Command::R(roll_string) => {
-            bot.send_message(msg.chat.id, handle_dice_roll(roll_string))
+            let user = msg.from.unwrap();
+            let username = user.mention().unwrap_or_else(|| user.first_name.clone());
+
+            bot.send_message(msg.chat.id, handle_dice_roll(roll_string, username))
+                .parse_mode(ParseMode::Html)
+                .reply_to(msg.id)
                 .await?
         }
     };
