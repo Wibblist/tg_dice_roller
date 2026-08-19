@@ -4,7 +4,7 @@ A simple Telegram bot for rolling dice, intended for tabletop RPG games.
 
 This repo contains two implementations:
 
-- **`worker/`** — TypeScript on Cloudflare Workers. **This is the deployed implementation** and where new features land.
+- **`worker/`** — TypeScript on Cloudflare Workers. **This is the used implementation** and where new features land.
 - **`rust/`** — the original Rust implementation (teloxide + axum), frozen as a reference. It runs as a long-lived webhook server and is not deployed.
 
 See `CONTEXT.md` for the canonical dice-notation glossary.
@@ -17,22 +17,30 @@ See `CONTEXT.md` for the canonical dice-notation glossary.
 
 ## Dice Notation
 
-`XdY+Z` where:
-  - `X` is the number of dice to roll (optional, defaults to 1)
-  - `Y` is the number of faces on each die (required)
-  - `Z` is an optional modifier to add to the total. This can be positive or negative.
+See `CONTEXT.md` for the formal glossary. In short:
+
+- `XdY±Z` — `X` dice (optional, defaults to 1) of `Y` faces, plus/minus a flat modifier
+- `2d6+1d4+3` — chain multiple dice groups and modifiers
+- `4d6kh3` / `4d6kl1` — keep the highest / lowest N dice
+- `d20a` / `d20d` — advantage / disadvantage (single die only)
+- `1d4+1 x3` — roll the whole expression 3 separate times (e.g. magic missile)
+- `30d6 full` — force the full dice breakdown on rolls big enough to auto-compact (>20 dice)
+
+Individual die results are shown by default, with dropped dice struck through. Limits: 100 dice and 10000 faces per roll, 10 repeats.
 
 Examples:
+
 - `d20` - Roll one 20-sided die
-- `2d6` - Roll two 6-sided dice
 - `3d8+5` - Roll three 8-sided dice and add 5 to the result
-- `d10-3` - Roll one 10-sided die and subtract 3 from the result
+- `2d20kh1+7` - Advantage attack roll with +7 (same as `d20a+7`)
+- `8d6 x2` - Two separate 8d6 rolls
 
 ## Deployment (`worker/`)
 
 Deployed to Cloudflare Workers via push-to-deploy (Workers Builds, root directory `worker/`). Manual deploys: `wrangler deploy` from `worker/`.
 
 Secrets (set via `wrangler secret put`):
+
 - `TELEGRAM_TOKEN` - Telegram Bot API token
 - `WEBHOOK_SECRET` - value passed as `secret_token` to `setWebhook`; validated on every request
 

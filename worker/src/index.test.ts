@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import worker, { escapeHtml, parseCommand, rollDice } from "./index";
+import worker, { escapeHtml, parseCommand } from "./index";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -39,58 +39,6 @@ describe("parseCommand", () => {
 describe("escapeHtml", () => {
   it("escapes &, <, >", () => {
     expect(escapeHtml("<b>&</b>")).toBe("&lt;b&gt;&amp;&lt;/b&gt;");
-  });
-});
-
-describe("rollDice", () => {
-  it("rolls a single die with implicit count", () => {
-    fixRandom(0.5); // d20 → floor(0.5*20)+1 = 11
-    expect(rollDice("d20", "@bob")).toBe("@bob rolled 1d20: [11] = 11");
-  });
-
-  it("rolls multiple dice and sums them", () => {
-    fixRandom(0); // every die rolls 1
-    expect(rollDice("3d6", "@bob")).toBe("@bob rolled 3d6: [1 + 1 + 1] = 3");
-  });
-
-  it("applies a positive modifier", () => {
-    fixRandom(0.999); // d6 → 6
-    expect(rollDice("2d6+3", "@bob")).toBe("@bob rolled 2d6+3: [6 + 6] + 3 = 15");
-  });
-
-  it("applies a negative modifier", () => {
-    fixRandom(0.5); // d10 → 6
-    expect(rollDice("d10-3", "@bob")).toBe("@bob rolled 1d10-3: [6] - 3 = 3");
-  });
-
-  it("rejects zero dice", () => {
-    expect(rollDice("0d6", "@bob")).toBe(
-      "@bob rolled an invalid number of dice. You can't roll negative dice.",
-    );
-  });
-
-  it("rejects zero-sided dice", () => {
-    expect(rollDice("d0", "@bob")).toBe(
-      "@bob rolled an invalid number of sides on the dice. The dice gotta have at least 1 side.",
-    );
-  });
-
-  it("rejects malformed input, including empty", () => {
-    const invalid = "Invalid dice roll format. Use format like '2d20+5' or '2d20-5'";
-    expect(rollDice("", "@bob")).toBe(invalid);
-    expect(rollDice("banana", "@bob")).toBe(invalid);
-    expect(rollDice("2d", "@bob")).toBe(invalid);
-    expect(rollDice("2d6+3+4", "@bob")).toBe(invalid);
-  });
-
-  it("stays within die bounds", () => {
-    for (const r of [0, 0.2, 0.999999]) {
-      fixRandom(r);
-      const match = rollDice("d6", "@bob").match(/\[(\d+)\]/);
-      const value = Number(match?.[1]);
-      expect(value).toBeGreaterThanOrEqual(1);
-      expect(value).toBeLessThanOrEqual(6);
-    }
   });
 });
 

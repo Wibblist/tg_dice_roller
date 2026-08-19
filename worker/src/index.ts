@@ -1,3 +1,7 @@
+import { rollDice } from "./dice";
+
+export { rollDice };
+
 interface Env {
   TELEGRAM_TOKEN: string;
   WEBHOOK_SECRET: string;
@@ -36,9 +40,19 @@ interface SendMessageBody {
 }
 
 const START_TEXT = "🎲 Ayyyy, I'm rollin here! >:D\nUse /help to see available commands.";
-const HELP_TEXT =
-  "These commands are currently supported:\n\n/start — Start the bot.\n/help — Display this text.\n/r — Roll dice when given the right format (e.g. 2d20+5).";
-const ROLL_PATTERN = /^(\d*)d(\d+)(?:[+-](\d+))?$/;
+const HELP_TEXT = [
+  "These commands are currently supported:",
+  "",
+  "/start — Start the bot.",
+  "/help — Display this text.",
+  "/r — Roll dice. Syntax:",
+  "  2d20+5 — X dice of Y faces, ± a flat modifier.",
+  "  2d6+1d4+3 — chain as many groups and modifiers as you like.",
+  "  4d6kh3 / 4d6kl1 — keep the highest / lowest N dice.",
+  "  d20a / d20d — advantage / disadvantage (single die only).",
+  "  1d4+1x3 — roll the whole thing 3 separate times.",
+  "  20d6 full — force the full breakdown on big rolls.",
+].join("\n");
 
 export function parseCommand(text: string): Command | undefined {
   const match = text.match(/^\/(start|help|r)(?:@[A-Za-z0-9_]+)?(?:\s+([\s\S]*))?$/);
@@ -58,41 +72,6 @@ export function parseCommand(text: string): Command | undefined {
 
 export function escapeHtml(text: string): string {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-}
-
-export function rollDice(rollString: string, username: string): string {
-  const match = rollString.match(ROLL_PATTERN);
-  if (!match) {
-    return "Invalid dice roll format. Use format like '2d20+5' or '2d20-5'";
-  }
-
-  const numDiceString = match[1] ?? "";
-  const numDice = numDiceString === "" ? 1 : Number.parseInt(numDiceString, 10);
-  if (!Number.isSafeInteger(numDice) || numDice <= 0) {
-    return `${username} rolled an invalid number of dice. You can't roll negative dice.`;
-  }
-
-  const faces = Number.parseInt(match[2] ?? "0", 10);
-  if (!Number.isSafeInteger(faces) || faces <= 0) {
-    return `${username} rolled an invalid number of sides on the dice. The dice gotta have at least 1 side.`;
-  }
-
-  const modifierValue = match[3] === undefined ? 0 : Number.parseInt(match[3], 10);
-  const modifier = rollString.includes("-") ? -modifierValue : modifierValue;
-  const rolls: number[] = [];
-  for (let index = 0; index < numDice; index += 1) {
-    rolls.push(Math.floor(Math.random() * faces) + 1);
-  }
-
-  const diceTotal = rolls.reduce((sum, value) => sum + value, 0);
-  const total = diceTotal + modifier;
-  const rollsString = rolls.join(" + ");
-
-  if (modifier !== 0) {
-    const sign = modifier < 0 ? "-" : "+";
-    return `${username} rolled ${numDice}d${faces}${sign}${Math.abs(modifier)}: [${rollsString}] ${sign} ${Math.abs(modifier)} = ${total}`;
-  }
-  return `${username} rolled ${numDice}d${faces}: [${rollsString}] = ${total}`;
 }
 
 async function sendMessage(env: Env, body: SendMessageBody): Promise<void> {
