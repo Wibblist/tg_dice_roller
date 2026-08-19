@@ -305,10 +305,27 @@ export function renderIteration(iteration: RolledIteration): string {
 }
 
 export function renderExpressionEcho(expression: RollExpression): string {
+  // Advantage/disadvantage groups echo in words ("d20 with advantage"); an
+  // expression containing one gets spaced signs so the words don't run together.
+  const wordy = expression.terms.some(
+    ({ term }) =>
+      term.kind === "group" && (term.marker?.kind === "adv" || term.marker?.kind === "dis"),
+  );
   return expression.terms
     .map(({ sign, term }, i) => {
-      const body = term.kind === "group" ? term.echo : String(term.value);
-      return i === 0 ? body : `${sign === 1 ? "+" : "-"}${body}`;
+      let body: string;
+      if (term.kind === "group" && term.marker?.kind === "adv") {
+        body = `d${term.faces} with advantage`;
+      } else if (term.kind === "group" && term.marker?.kind === "dis") {
+        body = `d${term.faces} with disadvantage`;
+      } else {
+        body = term.kind === "group" ? term.echo : String(term.value);
+      }
+      const signText = sign === 1 ? "+" : "-";
+      if (i === 0) {
+        return body;
+      }
+      return wordy ? ` ${signText} ${body}` : `${signText}${body}`;
     })
     .join("");
 }
@@ -338,6 +355,6 @@ export function rollDice(rollString: string, username: string, rng: Rng = Math.r
   if (expression.repeat === 1) {
     return `${username} rolled ${echo}: ${line(iterations[0] as RolledIteration)}`;
   }
-  const header = `${username} rolled ${echo} x${expression.repeat}:`;
+  const header = `${username} rolled ${echo} ${expression.repeat} times:`;
   return [header, ...iterations.map(line)].join("\n");
 }

@@ -157,14 +157,25 @@ describe("rollDice — keep highest/lowest", () => {
 });
 
 describe("rollDice — advantage/disadvantage", () => {
-  it("expands advantage to two dice keeping the highest, echoing as typed", () => {
+  it("expands advantage to two dice keeping the highest, echoing in words", () => {
     const rng = diceRng(20, 7, 15);
-    expect(rollDice("d20a", "@bob", rng)).toBe("@bob rolled d20a: [<s>7</s> + 15] = 15");
+    expect(rollDice("d20a", "@bob", rng)).toBe(
+      "@bob rolled d20 with advantage: [<s>7</s> + 15] = 15",
+    );
   });
 
   it("expands disadvantage to two dice keeping the lowest", () => {
     const rng = diceRng(20, 7, 15);
-    expect(rollDice("1d20d", "@bob", rng)).toBe("@bob rolled 1d20d: [7 + <s>15</s>] = 7");
+    expect(rollDice("1d20d", "@bob", rng)).toBe(
+      "@bob rolled d20 with disadvantage: [7 + <s>15</s>] = 7",
+    );
+  });
+
+  it("spaces out the echo when advantage is chained with other terms", () => {
+    const rng = diceRng(20, 7, 15);
+    expect(rollDice("d20a+7", "@bob", rng)).toBe(
+      "@bob rolled d20 with advantage + 7: [<s>7</s> + 15] + 7 = 22",
+    );
   });
 
   it("rejects advantage on a multi-die group", () => {
@@ -178,7 +189,7 @@ describe("rollDice — repeats", () => {
   it("renders a header plus one line per iteration", () => {
     const rng = diceRng(4, 3, 1, 2);
     expect(rollDice("1d4+1x3", "@bob", rng)).toBe(
-      "@bob rolled 1d4+1 x3:\n[3] + 1 = 4\n[1] + 1 = 2\n[2] + 1 = 3",
+      "@bob rolled 1d4+1 3 times:\n[3] + 1 = 4\n[1] + 1 = 2\n[2] + 1 = 3",
     );
   });
 
@@ -206,7 +217,7 @@ describe("rollDice — verbose/compact boundary", () => {
 
   it("goes compact per iteration when repeating", () => {
     fixRandom(0);
-    expect(rollDice("21d6x2", "@bob")).toBe("@bob rolled 21d6 x2:\n21\n21");
+    expect(rollDice("21d6x2", "@bob")).toBe("@bob rolled 21d6 2 times:\n21\n21");
   });
 });
 

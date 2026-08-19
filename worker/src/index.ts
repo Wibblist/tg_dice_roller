@@ -40,18 +40,20 @@ interface SendMessageBody {
 }
 
 const START_TEXT = "🎲 Ayyyy, I'm rollin here! >:D\nUse /help to see available commands.";
+// Sent with parse_mode HTML.
 const HELP_TEXT = [
-  "These commands are currently supported:",
+  "<b>Commands</b>",
+  "/start — start the bot",
+  "/help — this text",
+  "/r — roll dice",
   "",
-  "/start — Start the bot.",
-  "/help — Display this text.",
-  "/r — Roll dice. Syntax:",
-  "  2d20+5 — X dice of Y faces, ± a flat modifier.",
-  "  2d6+1d4+3 — chain as many groups and modifiers as you like.",
-  "  4d6kh3 / 4d6kl1 — keep the highest / lowest N dice.",
-  "  d20a / d20d — advantage / disadvantage (single die only).",
-  "  1d4+1x3 — roll the whole thing 3 separate times.",
-  "  20d6 full — force the full breakdown on big rolls.",
+  "<b>Dice syntax</b>",
+  "<code>2d20+5</code> — dice ± flat modifier",
+  "<code>2d6+1d4+3</code> — chain groups",
+  "<code>4d6kh3</code> — keep the 3 highest (<code>kl</code>: lowest)",
+  "<code>d20a</code> / <code>d20d</code> — advantage / disadvantage",
+  "<code>1d4+1 x3</code> — roll it 3 separate times",
+  "<code>30d6 full</code> — full breakdown on big rolls",
 ].join("\n");
 
 export function parseCommand(text: string): Command | undefined {
@@ -123,7 +125,7 @@ export default {
     if (command.kind === "start") {
       await sendMessage(env, { chat_id: message.chat.id, text: START_TEXT });
     } else if (command.kind === "help") {
-      await sendMessage(env, { chat_id: message.chat.id, text: HELP_TEXT });
+      await sendMessage(env, { chat_id: message.chat.id, text: HELP_TEXT, parse_mode: "HTML" });
     } else {
       const user = message.from;
       const username = user?.username !== undefined
