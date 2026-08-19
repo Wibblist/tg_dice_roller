@@ -1,16 +1,21 @@
 # TG Dice Roller Bot
 
-A simple Telegram bot for rolling dice intended to be used for tabletop RPG games. 
+A simple Telegram bot for rolling dice, intended for tabletop RPG games.
+
+This repo contains two implementations:
+
+- **`worker/`** — TypeScript on Cloudflare Workers. **This is the deployed implementation** and where new features land.
+- **`rust/`** — the original Rust implementation (teloxide + axum), frozen as a reference. It runs as a long-lived webhook server and is not deployed.
+
+See `CONTEXT.md` for the canonical dice-notation glossary.
 
 ## Commands
 
 - `/start` - Start the bot
 - `/help` - Display available commands
-- `/r <format>` - Roll dice using the specified format (e.g. `/r 3d6+2`)
+- `/r <expression>` - Roll dice (e.g. `/r 3d6+2`)
 
-## Dice Rolling Format
-
-The bot supports the standard RPG dice notation:
+## Dice Notation
 
 `XdY+Z` where:
   - `X` is the number of dice to roll (optional, defaults to 1)
@@ -23,26 +28,17 @@ Examples:
 - `3d8+5` - Roll three 8-sided dice and add 5 to the result
 - `d10-3` - Roll one 10-sided die and subtract 3 from the result
 
-## Environment Variables
+## Deployment (`worker/`)
 
-The bot requires the following environment variables:
-- `TELOXIDE_TOKEN` - Your Telegram Bot API token
-- `PORT` - Port for the webhook server
-- `HOST` - Host address for the webhook server
-- `WEBHOOK_URL` - Public URL where Telegram can reach your webhook
+Deployed to Cloudflare Workers via push-to-deploy (Workers Builds, root directory `worker/`). Manual deploys: `wrangler deploy` from `worker/`.
 
-## Running Locally
+Secrets (set via `wrangler secret put`):
+- `TELEGRAM_TOKEN` - Telegram Bot API token
+- `WEBHOOK_SECRET` - value passed as `secret_token` to `setWebhook`; validated on every request
 
-1. Clone the repository
-2. Set the required environment variables
-3. Install dependencies with Cargo: `cargo build`
-4. Run the bot with Cargo: `cargo run`
+## Running the Rust version locally (`rust/`)
 
-
-## Deployment
-
-This bot is designed to run with webhook integration, using a service like [Railway](https://railway.com/). You can also run it locally using [ngrok](https://ngrok.com/) to expose your local server to the internet.
-
+Requires env vars `TELOXIDE_TOKEN`, `PORT`, `HOST`, `WEBHOOK_URL`, and a public HTTPS tunnel (e.g. ngrok). Then `cargo run` from `rust/`.
 
 ## Contributing
 
