@@ -40,7 +40,7 @@ const HELP_TEXT =
   "These commands are currently supported:\n\n/start — Start the bot.\n/help — Display this text.\n/r — Roll dice when given the right format (e.g. 2d20+5).";
 const ROLL_PATTERN = /^(\d*)d(\d+)(?:[+-](\d+))?$/;
 
-function parseCommand(text: string): Command | undefined {
+export function parseCommand(text: string): Command | undefined {
   const match = text.match(/^\/(start|help|r)(?:@[A-Za-z0-9_]+)?(?:\s+([\s\S]*))?$/);
   if (!match) {
     return undefined;
@@ -56,11 +56,11 @@ function parseCommand(text: string): Command | undefined {
   return { kind: "roll", roll: (match[2] ?? "").trim() };
 }
 
-function escapeHtml(text: string): string {
+export function escapeHtml(text: string): string {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
-function rollDice(rollString: string, username: string): string {
+export function rollDice(rollString: string, username: string): string {
   const match = rollString.match(ROLL_PATTERN);
   if (!match) {
     return "Invalid dice roll format. Use format like '2d20+5' or '2d20-5'";
