@@ -356,5 +356,6 @@ export function rollDice(rollString: string, username: string, rng: Rng = Math.r
     return `${username} rolled ${echo}: ${line(iterations[0] as RolledIteration)}`;
   }
   const header = `${username} rolled ${echo} ${expression.repeat} times:`;
-  return [header, ...iterations.map(line)].join("\n");
+  const grandTotal = iterations.reduce((sum, iteration) => sum + iteration.total, 0);
+  return [header, ...iterations.map(line), `<b>Total: ${grandTotal}</b>`].join("\n");
 }

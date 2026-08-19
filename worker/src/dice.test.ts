@@ -189,7 +189,7 @@ describe("rollDice — repeats", () => {
   it("renders a header plus one line per iteration", () => {
     const rng = diceRng(4, 3, 1, 2);
     expect(rollDice("1d4+1x3", "@bob", rng)).toBe(
-      "@bob rolled 1d4+1 3 times:\n[3] + 1 = 4\n[1] + 1 = 2\n[2] + 1 = 3",
+      "@bob rolled 1d4+1 3 times:\n[3] + 1 = 4\n[1] + 1 = 2\n[2] + 1 = 3\n<b>Total: 9</b>",
     );
   });
 
@@ -217,7 +217,7 @@ describe("rollDice — verbose/compact boundary", () => {
 
   it("goes compact per iteration when repeating", () => {
     fixRandom(0);
-    expect(rollDice("21d6x2", "@bob")).toBe("@bob rolled 21d6 2 times:\n21\n21");
+    expect(rollDice("21d6x2", "@bob")).toBe("@bob rolled 21d6 2 times:\n21\n21\n<b>Total: 42</b>");
   });
 });
 
