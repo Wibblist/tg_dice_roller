@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "latest",
+    "typescript": "^5",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.0.0"
+  }
+}
