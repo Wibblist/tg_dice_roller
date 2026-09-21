@@ -38,7 +38,7 @@ Examples:
 
 ## Deployment (`worker/`)
 
-Deployed to Cloudflare Workers via push-to-deploy (Workers Builds, root directory `worker/`). Manual deploys: `wrangler deploy` from `worker/`.
+Deployed to Cloudflare Workers via push-to-deploy (Workers Builds, root directory `worker/`). Uses pnpm (`pnpm install`, `pnpm test`, `pnpm typecheck`). Manual deploys: `pnpm run deploy` from `worker/`.
 
 Secrets (set via `wrangler secret put`):
 
