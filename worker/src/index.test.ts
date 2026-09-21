@@ -96,6 +96,20 @@ describe("fetch handler", () => {
     });
   });
 
+  it("passes a labelled roll through to the Telegram reply", async () => {
+    fixRandom(0);
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 200 }));
+
+    await worker.fetch(webhookRequest(update("/r@dicebot d20+2 x2\nAttack <b>Roll</b>")), env);
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string).text).toBe(
+      '@bob rolled 1d20+2 2 times for "Attack &lt;b&gt;Roll&lt;/b&gt;":\n[1] + 2 = 3\n[1] + 2 = 3\n<b>Total: 6</b>',
+    );
+  });
+
   it("escapes the first-name fallback in HTML mode", async () => {
     fixRandom(0);
     const fetchMock = vi

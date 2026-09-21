@@ -258,7 +258,44 @@ describe("rollDice — errors", () => {
     expect(rollDice("2d", "@bob")).toBe(INVALID);
     expect(rollDice("2d6kh", "@bob")).toBe(INVALID);
     expect(rollDice("2d6+", "@bob")).toBe(INVALID);
-    expect(rollDice("2d6 x", "@bob")).toBe(INVALID);
-    expect(rollDice("2d6 junk", "@bob")).toBe(INVALID);
+  });
+});
+
+describe("rollDice — labels", () => {
+  it("appends trailing text as a quoted label", () => {
+    const rng = diceRng(20, 19);
+    expect(rollDice("d20+2 attack roll", "@bob", rng)).toBe(
+      '@bob rolled 1d20+2 for "attack roll": [19] + 2 = 21',
+    );
+  });
+
+  it("preserves label case and escapes HTML", () => {
+    const rng = diceRng(6, 4);
+    expect(rollDice("d6 Fire <b>&</b> Ice", "@bob", rng)).toBe(
+      '@bob rolled 1d6 for "Fire &lt;b&gt;&amp;&lt;/b&gt; Ice": [4] = 4',
+    );
+  });
+
+  it("does not mistake label words starting with x or full for grammar", () => {
+    const rng = diceRng(6, 4);
+    expect(rollDice("d6 xylophone", "@bob", rng)).toBe('@bob rolled 1d6 for "xylophone": [4] = 4');
+    expect(rollDice("d6 fullness", "@bob", rng)).toBe('@bob rolled 1d6 for "fullness": [4] = 4');
+    expect(rollDice("d6 x", "@bob", rng)).toBe('@bob rolled 1d6 for "x": [4] = 4');
+  });
+
+  it("puts the label after the repeat count and collapses whitespace", () => {
+    const rng = diceRng(4, 3, 1);
+    expect(rollDice("1d4+1 x2  magic\n  missile ", "@bob", rng)).toBe(
+      '@bob rolled 1d4+1 2 times for "magic missile":\n[3] + 1 = 4\n[1] + 1 = 2\n<b>Total: 6</b>',
+    );
+  });
+
+  it("allows a 100-char label but rejects 101", () => {
+    const rng = diceRng(6, 4);
+    const label100 = "a".repeat(100);
+    expect(rollDice(`d6 ${label100}`, "@bob", rng)).toBe(`@bob rolled 1d6 for "${label100}": [4] = 4`);
+    expect(rollDice(`d6 ${label100}b`, "@bob", rng)).toBe(
+      "That comment is too long. Keep it to 100 characters.",
+    );
   });
 });

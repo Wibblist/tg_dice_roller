@@ -1,6 +1,6 @@
-import { rollDice } from "./dice";
+import { escapeHtml, rollDice } from "./dice";
 
-export { rollDice };
+export { escapeHtml, rollDice };
 
 interface Env {
   TELEGRAM_TOKEN: string;
@@ -54,6 +54,7 @@ const HELP_TEXT = [
   "<code>d20a</code> / <code>d20d</code> — advantage / disadvantage",
   "<code>1d4+1 x3</code> — roll it 3 separate times",
   "<code>30d6 full</code> — full breakdown on big rolls",
+  "<code>d20+5 attack roll</code> — trailing text becomes a comment on the roll",
 ].join("\n");
 
 export function parseCommand(text: string): Command | undefined {
@@ -70,10 +71,6 @@ export function parseCommand(text: string): Command | undefined {
     return { kind: "help" };
   }
   return { kind: "roll", roll: (match[2] ?? "").trim() };
-}
-
-export function escapeHtml(text: string): string {
-  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 async function sendMessage(env: Env, body: SendMessageBody): Promise<void> {

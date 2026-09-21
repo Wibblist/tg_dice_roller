@@ -1,9 +1,11 @@
 /**
  * Dice grammar (see ../../CONTEXT.md for the canonical glossary):
  *
- *   roll   := expr repeat? verbose?
+ *   roll   := expr repeat? verbose? label?
  *   repeat := 'x' INT                    (1..10, applies to the whole expr)
- *   verbose:= 'full'
+ *   verbose:= 'full'                     (must be a whole word)
+ *   label  := free text to end of input  (<= 100 chars; 'x'/'full' not followed
+ *                                         by a digit / word boundary fall through here)
  *   expr   := term (('+'|'-') term)*
  *   term   := group | INT
  *   group  := INT? 'd' INT marker?
@@ -14,6 +16,7 @@ export const MAX_DICE_PER_GROUP = 100;
 export const MAX_TOTAL_DICE = 100;
 export const MAX_FACES = 10000;
 export const MAX_REPEATS = 10;
+export const MAX_LABEL_LENGTH = 100;
 /** Above this many dice per iteration, output falls back to compact unless `full` is given. */
 export const VERBOSE_DICE_CAP = 20;
 
@@ -36,6 +39,7 @@ export interface RollExpression {
   terms: SignedTerm[];
   repeat: number;
   verboseOverride: boolean;
+  label?: string;
 }
 
 export type ParseError =
@@ -45,7 +49,8 @@ export type ParseError =
   | { kind: "too-many" }
   | { kind: "keep-count" }
   | { kind: "adv-multi" }
-  | { kind: "repeat-range" };
+  | { kind: "repeat-range" }
+  | { kind: "label-length" };
 
 export type ParseResult =
   | { ok: true; value: RollExpression }
@@ -63,7 +68,9 @@ function isDigit(char: string | undefined): boolean {
 
 /** Pure parser: normalized text in, typed AST (or a typed error) out. */
 export function parseRoll(input: string): ParseResult {
-  const source = input.trim().toLowerCase();
+  const original = input.trim();
+  // ASCII-only lowering keeps indices aligned with `original` (the label is sliced from it).
+  const source = original.replace(/[A-Z]/g, (c) => c.toLowerCase());
   let index = 0;
 
   const skipSpace = (): void => {
@@ -131,27 +138,21 @@ export function parseRoll(input: string): ParseResult {
   skipSpace();
   let repeat = 1;
   let repeatGiven = false;
-  if (source[index] === "x") {
+  if (source[index] === "x" && isDigit(source[index + 1])) {
     index += 1;
-    const count = readInt();
-    if (count === undefined) {
-      return fail("format");
-    }
-    repeat = count;
+    repeat = readInt() as number;
     repeatGiven = true;
   }
 
   skipSpace();
   let verboseOverride = false;
-  if (source.slice(index, index + 4) === "full") {
+  if (source.slice(index, index + 4) === "full" && !/\S/.test(source[index + 4] ?? "")) {
     index += 4;
     verboseOverride = true;
   }
 
   skipSpace();
-  if (index !== source.length) {
-    return fail("format");
-  }
+  const label = original.slice(index).replace(/\s+/g, " ").trim();
 
   if (!terms.some(({ term }) => term.kind === "group")) {
     return fail("format");
@@ -190,8 +191,15 @@ export function parseRoll(input: string): ParseResult {
   if (repeatGiven && (repeat < 1 || repeat > MAX_REPEATS)) {
     return fail("repeat-range");
   }
+  if (label.length > MAX_LABEL_LENGTH) {
+    return fail("label-length");
+  }
 
-  return { ok: true, value: { terms, repeat, verboseOverride } };
+  return { ok: true, value: { terms, repeat, verboseOverride, ...(label ? { label } : {}) } };
+}
+
+export function escapeHtml(text: string): string {
+  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
 export function errorMessage(error: ParseError, username: string): string {
@@ -208,6 +216,8 @@ export function errorMessage(error: ParseError, username: string): string {
       return "Advantage/disadvantage only applies to a single die (e.g. d20a or d20d).";
     case "repeat-range":
       return `Too many repeats. Keep it to ${MAX_REPEATS} or fewer.`;
+    case "label-length":
+      return `That comment is too long. Keep it to ${MAX_LABEL_LENGTH} characters.`;
     default:
       return "Invalid dice roll format. Use format like '2d20+5' or '2d20-5'";
   }
@@ -342,6 +352,7 @@ export function rollDice(rollString: string, username: string, rng: Rng = Math.r
 
   const expression = parsed.value;
   const echo = renderExpressionEcho(expression);
+  const tag = expression.label === undefined ? "" : ` for "${escapeHtml(expression.label)}"`;
   const verbose = expression.verboseOverride || diceCount(expression) <= VERBOSE_DICE_CAP;
 
   const iterations: RolledIteration[] = [];
@@ -353,9 +364,9 @@ export function rollDice(rollString: string, username: string, rng: Rng = Math.r
     verbose ? `${renderIteration(iteration)} = ${iteration.total}` : String(iteration.total);
 
   if (expression.repeat === 1) {
-    return `${username} rolled ${echo}: ${line(iterations[0] as RolledIteration)}`;
+    return `${username} rolled ${echo}${tag}: ${line(iterations[0] as RolledIteration)}`;
   }
-  const header = `${username} rolled ${echo} ${expression.repeat} times:`;
+  const header = `${username} rolled ${echo} ${expression.repeat} times${tag}:`;
   const grandTotal = iterations.reduce((sum, iteration) => sum + iteration.total, 0);
   return [header, ...iterations.map(line), `<b>Total: ${grandTotal}</b>`].join("\n");
 }

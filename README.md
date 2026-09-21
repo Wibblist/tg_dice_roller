@@ -25,8 +25,9 @@ See `CONTEXT.md` for the formal glossary. In short:
 - `d20a` / `d20d` — advantage / disadvantage (single die only)
 - `1d4+1 x3` — roll the whole expression 3 separate times (e.g. magic missile)
 - `30d6 full` — force the full dice breakdown on rolls big enough to auto-compact (>20 dice)
+- `d20+5 attack roll` — any trailing text (after `xN`/`full`) is echoed as a comment: `rolled 1d20+5 for "attack roll": …`
 
-Individual die results are shown by default, with dropped dice struck through. Limits: 100 dice and 10000 faces per roll, 10 repeats.
+Individual die results are shown by default, with dropped dice struck through. Limits: 100 dice and 10000 faces per roll, 10 repeats, 100-character comments.
 
 Examples:
 
